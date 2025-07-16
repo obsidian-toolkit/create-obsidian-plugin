@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ES2023",
+        "moduleResolution": "node",
+        "jsx": "react-jsx",
+        "types": ["node"],
+        "strict": true,
+        "declaration": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "allowImportingTsExtensions": false,
+        "resolveJsonModule": true
+    }
+}
