@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { execSync } from 'child_process';
+import { Command } from 'commander';
+import { findUpSync } from 'find-up-simple';
 import fs from 'fs/promises';
 import inquirer from 'inquirer';
 import path from 'path';
@@ -12,6 +14,19 @@ interface PluginConfig {
     pluginName: string;
     pluginId: string;
     author: string;
+}
+
+const program = new Command();
+program.option('--here', 'create in current directory').parse();
+
+const options = program.opts();
+
+const root = findUpSync('package.json');
+
+if (!root) {
+    process.exit(1);
+} else {
+    process.chdir(path.dirname(root));
 }
 
 function toUpperCamelCase(str: string): string {
@@ -151,8 +166,9 @@ async function renameSpecialFiles(
 }
 
 async function createPlugin(config: PluginConfig): Promise<void> {
-    const targetDir = path.join(process.cwd(), config.pluginId);
-
+    const targetDir = options.here
+        ? process.cwd()
+        : path.join(process.cwd(), config.pluginId);
     console.log(`\n🏗️  Creating plugin in: ${targetDir}`);
 
     // Check if directory exists
