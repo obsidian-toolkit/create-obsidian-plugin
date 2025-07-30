@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import { Command } from 'commander';
 import { findUpSync } from 'find-up-simple';
 import fs from 'fs/promises';
+import { glob } from 'glob';
 import inquirer from 'inquirer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -45,7 +46,17 @@ async function getPluginConfig() {
 }
 async function copyTemplate(from, to) {
     console.log(`📁 Copying template...`);
-    await fs.cp(from, to, { recursive: true, force: true });
+    const files = await glob('**/*', {
+        cwd: from,
+        dot: true,
+        nodir: true,
+    });
+    for (const file of files) {
+        const sourcePath = path.join(from, file);
+        const targetPath = path.join(to, file);
+        await fs.mkdir(path.dirname(targetPath), { recursive: true });
+        await fs.copyFile(sourcePath, targetPath);
+    }
 }
 async function processAllSrcFiles(targetDir, config) {
     const srcDir = path.join(targetDir, 'src');
