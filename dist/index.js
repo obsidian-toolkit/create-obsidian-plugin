@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 import { execSync } from 'child_process';
 import { Command } from 'commander';
-import { findUpSync } from 'find-up-simple';
-import fs from 'fs/promises';
-import { glob } from 'glob';
+import fs from 'fs-extra';
 import inquirer from 'inquirer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,7 +10,6 @@ const templatesDir = path.join(__dirname, '..', 'templates');
 const program = new Command();
 program.option('--here', 'create in current directory').parse();
 const options = program.opts();
-const root = findUpSync('package.json');
 function toUpperCamelCase(str) {
     return str.replace(/(^|-)([a-z])/g, (_, __, letter) => letter.toUpperCase());
 }
@@ -46,16 +43,11 @@ async function getPluginConfig() {
 }
 async function copyTemplate(from, to) {
     console.log(`📁 Copying template...`);
-    const files = await glob('{**/*,**/.*}', {
-        cwd: from,
-        nodir: true,
-        dot: true,
-    });
-    for (const file of files) {
-        const sourcePath = path.join(from, file);
-        const targetPath = path.join(to, file);
-        await fs.mkdir(path.dirname(targetPath), { recursive: true });
-        await fs.copyFile(sourcePath, targetPath);
+    const items = await fs.readdir(from);
+    for (const item of items) {
+        const srcPath = path.join(from, item);
+        const destPath = path.join(to, item);
+        await fs.copy(srcPath, destPath);
     }
 }
 async function processAllSrcFiles(targetDir, config) {
