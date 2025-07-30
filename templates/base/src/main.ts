@@ -1,3 +1,3 @@
-import InteractifyPlugin from './core/interactify-plugin';
+import EmptyPlugin from './core/empty-plugin';
 
-export default InteractifyPlugin;
+export default EmptyPlugin;

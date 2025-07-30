@@ -1,4 +1,5 @@
-import InteractifyPlugin from '@/core/interactify-plugin';
+import {{PLUGIN_ID_UPPER_CAMEL}} from '@/core/{{PLUGIN_ID}}-plugin';
+import { ShortSystemInfo, SystemInfo } from '@/core/services/types/interfaces';
 
 import { moment, normalizePath, Platform } from 'obsidian';
 
@@ -8,7 +9,7 @@ export default class Logger {
     private isStorageAvailable = true;
     logsDir!: string;
 
-    constructor(public plugin: InteractifyPlugin) {
+    constructor(public plugin: {{PLUGIN_ID_UPPER_CAMEL}}) {
         this.storageKey = `${plugin.manifest.id}-logs`;
         this.checkStorageAvailability();
     }
@@ -16,7 +17,7 @@ export default class Logger {
     /**
      * Initializes the logger by writing system information if the debug setting is enabled.
      */
-    async init() {
+    async init(): Promise<void> {
         await this.ensureLogsDirExists();
         this.plugin.settings.$.debug.enabled && (await this.writeSystemInfo());
     }
@@ -42,15 +43,15 @@ export default class Logger {
 
             await this.rotateLogFiles(this.logsDir);
         } catch (error) {
-            console.error('Interactify: Error in the file:', error);
+            console.error('Empty: Error in the file:', error);
         }
     }
 
-    async ensureLogsDirExists() {
+    async ensureLogsDirExists(): Promise<void> {
         const pluginDir = this.plugin.manifest.dir;
         if (pluginDir === undefined) {
             throw new Error(
-                `Interactify: It was not possible to get the way to the plugin. Path:${pluginDir}`
+                `Image Zoom & Drag: It was not possible to get the way to the plugin. Path:${pluginDir}`
             );
         }
         this.logsDir = normalizePath(`${pluginDir}/logs`);
@@ -81,11 +82,13 @@ export default class Logger {
 
                 if (stat && now - stat.mtime > maxAge) {
                     await this.plugin.app.vault.adapter.remove(filePath);
-                    console.log(`Interactify: Remove the old log-file${file}`);
+                    console.log(
+                        `Empty: Remove the old log-file${file}`
+                    );
                 }
             }
         } catch (error) {
-            console.error('Interactify: Log Rotation Error:', error);
+            console.error('Empty: Log Rotation Error:', error);
         }
     }
 
@@ -107,7 +110,7 @@ export default class Logger {
         this.addLogEntry(systemInfo);
     }
 
-    getSystemInfo() {
+    getSystemInfo(): SystemInfo {
         return {
             timestamp: moment().toISOString(),
             session_start: true,
@@ -159,7 +162,7 @@ export default class Logger {
         };
     }
 
-    getShortSystemInfo() {
+    getShortSystemInfo(): ShortSystemInfo {
         return {
             timestamp: moment().toISOString(),
             obsidian: {
@@ -232,7 +235,7 @@ export default class Logger {
             localStorage.removeItem('test');
         } catch {
             this.isStorageAvailable = false;
-            console.warn('Interactify: Localstorage is not available');
+            console.warn('Empty: Localstorage is not available');
         }
     }
 
@@ -257,8 +260,12 @@ export default class Logger {
             }
 
             localStorage.setItem(this.storageKey, JSON.stringify(logs));
+
+            this.plugin.emitter.emit('logs-changed', {
+                storage: this.getStorageUsage(),
+                entries: this.getAllLogs().length,
+            });
         } catch (error) {
-            console.error('Logger: Ошибка записи в localStorage:', error);
             this.isStorageAvailable = false;
         }
     }
@@ -382,8 +389,6 @@ export default class Logger {
             const date = new Date(log.timestamp);
             const time = date.toLocaleTimeString();
             const ctx = log.context;
-            console.log(log);
-            console.log(ctx);
             const location = ctx?.file
                 ? `${ctx.file}:${ctx.lineNumber}${ctx.functionName ? ` (${ctx.functionName})` : ''}`
                 : 'unknown';
@@ -415,5 +420,9 @@ export default class Logger {
      */
     clearAllLogs(): void {
         localStorage.removeItem(this.storageKey);
+        this.plugin.emitter.emit('logs-changed', {
+            storage: this.getStorageUsage(),
+            entries: this.getAllLogs().length,
+        });
     }
 }

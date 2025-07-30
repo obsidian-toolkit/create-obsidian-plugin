@@ -1,15 +1,15 @@
 {
     "compilerOptions": {
+        "target": "ES2022",
         "module": "ESNext",
-        "target": "ES2023",
         "moduleResolution": "node",
-        "jsx": "react-jsx",
-        "types": ["node"],
+        "outDir": "./dist",
+        "rootDir": "./src",
         "strict": true,
-        "declaration": true,
-        "skipLibCheck": true,
         "esModuleInterop": true,
-        "allowImportingTsExtensions": false,
-        "resolveJsonModule": true
-    }
+        "skipLibCheck": true,
+        "declaration": true
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "templates/**/*"]
 }

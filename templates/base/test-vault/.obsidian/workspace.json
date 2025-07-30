@@ -4,17 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "ea92178049b0670c",
+        "id": "532ff5c8f51782fa",
         "type": "tabs",
         "children": [
           {
-            "id": "248bcfe4213f9b4f",
+            "id": "62d178d4a451aac4",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "one mermaid.md",
+                "mode": "preview",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "one mermaid"
             }
           }
         ]
@@ -164,20 +168,20 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "248bcfe4213f9b4f",
+  "active": "62d178d4a451aac4",
   "lastOpenFiles": [
     "one mermaid.md",
+    "three simple mermaids.md",
+    "very huge mermaid.md",
     "two embed local images.md",
-    "some mermaids.md",
     "screenshot test.md",
-    "one embed internal image.md",
     "Pasted image 20250630225538.png",
+    "some mermaids.md",
+    "one embed internal image.md",
     "Pasted image 20250616233435.png",
     "simple mermaid.md",
     "latex.md",
     "two simple mermaid and one huge.md",
-    "three simple mermaids.md",
-    "mehrmaid.md",
-    "very huge mermaid.md"
+    "mehrmaid.md"
   ]
 }

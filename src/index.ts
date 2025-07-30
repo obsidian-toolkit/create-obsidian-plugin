@@ -9,38 +9,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const templatesDir = path.join(__dirname, '..', 'templates');
 
 interface PluginConfig {
-    packageName: string;
     pluginName: string;
     pluginId: string;
-    useReact: boolean;
-    usePreact: boolean;
-    useI18n: boolean;
-    useReactiveSettings: boolean;
+    author: string;
 }
 
-async function prompt(question: string): Promise<string> {
-    process.stdout.write(question);
-    return new Promise((resolve) => {
-        process.stdin.once('data', (data) => {
-            resolve(data.toString().trim());
-        });
-    });
+function toUpperCamelCase(str: string): string {
+    return str.replace(/(^|-)([a-z])/g, (_, __, letter) =>
+        letter.toUpperCase()
+    );
 }
 
-async function confirm(question: string): Promise<boolean> {
-    const answer = await prompt(`${question} (y/N): `);
-    return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
-}
-
-function validatePluginName(name: string): boolean {
-    return /^[a-z][a-z0-9-]*$/.test(name) && name.length >= 2;
-}
-
-function validatePluginId(id: string): boolean {
-    return /^[a-z][a-z0-9-]*$/.test(id) && id.length >= 2;
-}
-
-async function getPluginConfig() {
+async function getPluginConfig(): Promise<PluginConfig> {
     console.log('🚀 Creating new Obsidian plugin\n');
 
     const metadata = await inquirer.prompt([
@@ -52,101 +32,80 @@ async function getPluginConfig() {
         },
         {
             type: 'input',
-            name: 'packageName',
-            message: 'Package name:',
-            default: (answers) =>
-                `obsidian-${answers.name.toLowerCase().trim().replace(/\s+/g, '-')}`,
-        },
-        {
-            type: 'input',
             name: 'id',
             message: 'Plugin id',
             default: 'my-plugin-id',
         },
-    ]);
-
-    const reactFeature = await inquirer.prompt([
         {
-            type: 'confirm',
-            name: 'reactEnabled',
-            message: 'Include React features?',
-            default: true,
-        },
-        {
-            type: 'confirm',
-            name: 'preactEnabled',
-            message: 'Replace React with Preact on bundling?',
-            default: true,
-            when: (answ) => answ.reactEnabled,
+            type: 'input',
+            name: 'author',
+            message: 'Author:',
+            default: 'Empty',
         },
     ]);
-
-    const i18nFeature = await inquirer.prompt([
-        {
-            type: 'confirm',
-            name: 'i18nEnabled',
-            message: 'Enable i18n features?',
-            default: false,
-        },
-    ]);
-
-    // TODO написать Obsidian Events враппер для нативных настроек, потипу EventEmitter2
-    const reactiveSettingsSystemFeature = await inquirer.prompt([
-        {
-            type: 'confirm',
-            name: 'reactiveSettings',
-            message: 'Enable reactive settings system?',
-            default: false,
-        },
-        {
-            type: 'list',
-            name: 'eventSystem',
-            message: 'Event system for reactive settings:',
-            choices: [
-                {
-                    name: 'EventEmitter2 (full features)',
-                    value: 'eventemitter2',
-                },
-                {
-                    name: 'Obsidian Events (custom wrapper)',
-                    value: 'obsidian-wrapper',
-                },
-                { name: 'No reactive settings', value: 'none' },
-            ],
-            default: 'none',
-            when: (ans) => ans.reactiveSettings,
-        },
-    ]);
-
-    const bundler = await inquirer.prompt([
-        {
-            type: 'list',
-            name: 'bundler',
-            message: 'Bundler:',
-            choices: ['esbuild', 'rollup'],
-            default: 'rollup',
-        },
-    ]);
-
-    const cssPreprocessing = await inquirer.prompt([
-        {
-            type: 'list',
-            name: 'css',
-            message: 'CSS:',
-            choices: ['vanilla', 'scss', 'postcss'],
-            default: 'vanilla',
-        },
-    ]);
+    return {
+        pluginName: metadata.name,
+        author: metadata.author,
+        pluginId: metadata.id,
+    };
 }
 
 async function copyTemplate(from: string, to: string): Promise<void> {
-    console.log(`📁 Copying ${path.basename(from)} template...`);
+    console.log(`📁 Copying template...`);
+    await fs.cp(from, to, { recursive: true, force: true });
+}
 
-    // DRY RUN - just log what would be copied
-    console.log(`   Would copy: ${from} -> ${to}`);
+async function processAllSrcFiles(
+    targetDir: string,
+    config: PluginConfig
+): Promise<void> {
+    console.log('\n🔄 Processing all src files...');
 
-    // Real implementation would be:
-    // await fs.cp(from, to, { recursive: true, force: true });
+    const srcDir = path.join(targetDir, 'src');
+    const processedFile = `${config.pluginId}-plugin.ts`;
+
+    async function processDirectory(dir: string): Promise<void> {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+
+            if (entry.isDirectory()) {
+                await processDirectory(fullPath);
+            } else if (entry.isFile() && entry.name !== processedFile) {
+                // Process only text files (common extensions)
+                const ext = path.extname(entry.name).toLowerCase();
+                const textExtensions = [
+                    '.ts',
+                    '.tsx',
+                    '.js',
+                    '.jsx',
+                    '.json',
+                    '.md',
+                    '.txt',
+                    '.css',
+                    '.scss',
+                    '.html',
+                ];
+
+                if (textExtensions.includes(ext)) {
+                    try {
+                        await processTemplateFile(fullPath, config);
+                    } catch (error) {
+                        console.log(
+                            `⚠️  Warning: Could not process ${entry.name}`
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    try {
+        await processDirectory(srcDir);
+    } catch (error) {
+        console.log('⚠️  Warning: Could not process src directory');
+    }
 }
 
 async function processTemplateFile(
@@ -155,21 +114,44 @@ async function processTemplateFile(
 ): Promise<void> {
     console.log(`🔄 Processing ${path.basename(filePath)}...`);
 
-    // DRY RUN - just log what would be processed
-    console.log(`   Would replace variables in: ${filePath}`);
-    console.log(`   Variables: ${JSON.stringify(config, null, 2)}`);
+    const content = await fs.readFile(filePath, 'utf8');
+    const processed = content
+        .replace(/{{PLUGIN_NAME}}/g, config.pluginName)
+        .replace(/{{PLUGIN_ID}}/g, config.pluginId)
+        .replace(
+            /{{PLUGIN_ID_UPPER_CAMEL}}/g,
+            toUpperCamelCase(config.pluginId)
+        )
+        .replace(/{{AUTHOR}}/g, config.author);
 
-    // Real implementation would be:
-    // const content = await fs.readFile(filePath, 'utf8');
-    // const processed = content
-    //     .replace(/{{PACKAGE_NAME}}/g, config.packageName)
-    //     .replace(/{{PLUGIN_NAME}}/g, config.pluginName)
-    //     .replace(/{{PLUGIN_ID}}/g, config.pluginId);
-    // await fs.writeFile(filePath, processed);
+    await fs.writeFile(filePath, processed);
+}
+
+async function renameSpecialFiles(
+    targetDir: string,
+    config: PluginConfig
+): Promise<void> {
+    // Rename empty-plugin.ts to pluginId-plugin.ts
+    const oldPath = path.join(targetDir, 'src', 'core', 'empty-plugin.ts');
+    const newPath = path.join(
+        targetDir,
+        'src',
+        'core',
+        `${config.pluginId}-plugin.ts`
+    );
+
+    try {
+        await fs.rename(oldPath, newPath);
+        console.log(
+            `📝 Renamed empty-plugin.ts to ${config.pluginId}-plugin.ts`
+        );
+    } catch (error) {
+        console.log(`ℹ️  File empty-plugin.ts not found, skipping rename`);
+    }
 }
 
 async function createPlugin(config: PluginConfig): Promise<void> {
-    const targetDir = path.join(process.cwd(), config.packageName);
+    const targetDir = path.join(process.cwd(), config.pluginId);
 
     console.log(`\n🏗️  Creating plugin in: ${targetDir}`);
 
@@ -182,65 +164,56 @@ async function createPlugin(config: PluginConfig): Promise<void> {
         // Directory doesn't exist, good to proceed
     }
 
-    // DRY RUN - just log what would be created
-    console.log(`📁 Would create directory: ${targetDir}`);
-
     // Copy base template
-    const defaultTemplate = path.join(templatesDir, 'default');
-    await copyTemplate(defaultTemplate, targetDir);
+    const baseTemplate = path.join(templatesDir, 'base');
+    await copyTemplate(baseTemplate, targetDir);
 
-    // Apply feature templates
-    const features: string[] = [];
-
-    if (config.useReact) {
-        features.push('react');
-        const reactTemplate = path.join(templatesDir, 'react');
-        await copyTemplate(reactTemplate, targetDir);
-
-        if (config.usePreact) {
-            features.push('preact');
-            const preactTemplate = path.join(templatesDir, 'preact');
-            await copyTemplate(preactTemplate, targetDir);
-        }
-    }
-
-    if (config.useI18n) {
-        features.push('i18n');
-        const i18nTemplate = path.join(templatesDir, 'i18n');
-        await copyTemplate(i18nTemplate, targetDir);
-    }
-
-    if (config.useReactiveSettings) {
-        features.push('reactive-settings');
-        const reactiveTemplate = path.join(templatesDir, 'reactive-settings');
-        await copyTemplate(reactiveTemplate, targetDir);
-    }
+    // Rename special files
+    await renameSpecialFiles(targetDir, config);
 
     // Process template variables in all files
     console.log('\n🔄 Processing template variables...');
-    const files = ['package.json', 'manifest.json', 'src/main.ts', 'README.md'];
+    const files = [
+        'package.json',
+        'manifest.json',
+        'rollup.config.ts',
+        'tsconfig.devs.json',
+        'styles.scss',
+        '.gitignore',
+        'README.md',
+        'LICENSE',
+        `src/core/${config.pluginId}-plugin.ts`,
+    ];
 
     for (const file of files) {
         const filePath = path.join(targetDir, file);
-        await processTemplateFile(filePath, config);
+        try {
+            await processTemplateFile(filePath, config);
+        } catch (error) {
+            console.log(
+                `⚠️  Warning: Could not process ${file}, file might not exist`
+            );
+        }
     }
+
+    await processAllSrcFiles(targetDir, config);
 
     // Install dependencies
     console.log('\n📦 Installing dependencies...');
-    console.log(`   Would run: cd ${config.packageName} && npm install`);
+    try {
+        execSync('bun install', { cwd: targetDir, stdio: 'ignore' });
+    } catch (error) {
+        console.log(
+            '⚠️  Failed to install dependencies automatically. Run "npm install" manually.'
+        );
+    }
 
     // Success message
     console.log('\n✅ Plugin created successfully!');
-    console.log(`\n📝 Features enabled: ${features.join(', ')}`);
     console.log('\n🚀 Next steps:');
-    console.log(`   cd ${config.packageName}`);
+    console.log(`   cd ${config.pluginId}`);
     console.log('   npm run dev        # Start development');
     console.log('   npm run build      # Build plugin');
-    if (config.useI18n) {
-        console.log(
-            '   npm run locale-tool template <lang>  # Add translation'
-        );
-    }
 }
 
 async function main(): Promise<void> {

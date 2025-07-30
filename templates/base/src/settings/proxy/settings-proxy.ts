@@ -3,11 +3,14 @@ import Settings from '../settings';
 export function createSettingsProxy(
     settingsManager: Settings,
     obj: any,
-    path: any[] = [],
-    autoSave?: boolean
-) {
+    path: any[] = []
+): any {
     return new Proxy(obj, {
         get(target, key) {
+            if (key === 'toJSON') {
+                return () => target;
+            }
+
             const value = target[key];
             if (typeof value === 'object' && value !== null) {
                 return createSettingsProxy(settingsManager, value, [
