@@ -98,10 +98,7 @@ async function processTemplateFile(filePath, config) {
         .replace(/{{PLUGIN_ID}}/g, config.pluginId)
         .replace(/{{PLUGIN_ID_UPPER_CAMEL}}/g, toUpperCamelCase(config.pluginId))
         .replace(/{{AUTHOR}}/g, config.author);
-    const outputPath = filePath.includes('_.gitignore')
-        ? filePath.replace('_.gitignore', '.gitignore')
-        : filePath;
-    await fs.writeFile(outputPath, processed);
+    await fs.writeFile(filePath, processed);
 }
 async function renameSpecialFiles(targetDir, config) {
     // Rename empty-plugin.ts to pluginId-plugin.ts

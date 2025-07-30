@@ -130,11 +130,7 @@ async function processTemplateFile(
         )
         .replace(/{{AUTHOR}}/g, config.author);
 
-    const outputPath = filePath.includes('_.gitignore')
-        ? filePath.replace('_.gitignore', '.gitignore')
-        : filePath;
-
-    await fs.writeFile(outputPath, processed);
+    await fs.writeFile(filePath, processed);
 }
 
 async function renameSpecialFiles(
