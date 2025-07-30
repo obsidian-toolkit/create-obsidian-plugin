@@ -74,8 +74,6 @@ async function processAllSrcFiles(
     targetDir: string,
     config: PluginConfig
 ): Promise<void> {
-    console.log('\n🔄 Processing all src files...');
-
     const srcDir = path.join(targetDir, 'src');
     const processedFile = `${config.pluginId}-plugin.ts`;
 
@@ -106,11 +104,7 @@ async function processAllSrcFiles(
                 if (textExtensions.includes(ext)) {
                     try {
                         await processTemplateFile(fullPath, config);
-                    } catch (error) {
-                        console.log(
-                            `⚠️  Warning: Could not process ${entry.name}`
-                        );
-                    }
+                    } catch (error) {}
                 }
             }
         }
@@ -127,8 +121,6 @@ async function processTemplateFile(
     filePath: string,
     config: PluginConfig
 ): Promise<void> {
-    console.log(`🔄 Processing ${path.basename(filePath)}...`);
-
     const content = await fs.readFile(filePath, 'utf8');
     const processed = content
         .replace(/{{PLUGIN_NAME}}/g, config.pluginName)
@@ -157,12 +149,7 @@ async function renameSpecialFiles(
 
     try {
         await fs.rename(oldPath, newPath);
-        console.log(
-            `📝 Renamed empty-plugin.ts to ${config.pluginId}-plugin.ts`
-        );
-    } catch (error) {
-        console.log(`ℹ️  File empty-plugin.ts not found, skipping rename`);
-    }
+    } catch (error) {}
 }
 
 async function createPlugin(config: PluginConfig): Promise<void> {
@@ -180,15 +167,11 @@ async function createPlugin(config: PluginConfig): Promise<void> {
         // Directory doesn't exist, good to proceed
     }
 
-    // Copy base template
     const baseTemplate = path.join(templatesDir, 'base');
     await copyTemplate(baseTemplate, targetDir);
 
-    // Rename special files
     await renameSpecialFiles(targetDir, config);
 
-    // Process template variables in all files
-    console.log('\n🔄 Processing template variables...');
     const files = [
         'package.json',
         'manifest.json',
@@ -205,11 +188,7 @@ async function createPlugin(config: PluginConfig): Promise<void> {
         const filePath = path.join(targetDir, file);
         try {
             await processTemplateFile(filePath, config);
-        } catch (error) {
-            console.log(
-                `⚠️  Warning: Could not process ${file}, file might not exist`
-            );
-        }
+        } catch (error) {}
     }
 
     await processAllSrcFiles(targetDir, config);

@@ -1,11 +1,23 @@
 #!/usr/bin/env node
 import { execSync } from 'child_process';
+import { Command } from 'commander';
+import { findUpSync } from 'find-up-simple';
 import fs from 'fs/promises';
 import inquirer from 'inquirer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const templatesDir = path.join(__dirname, '..', 'templates');
+const program = new Command();
+program.option('--here', 'create in current directory').parse();
+const options = program.opts();
+const root = findUpSync('package.json');
+if (!root) {
+    process.exit(1);
+}
+else {
+    process.chdir(path.dirname(root));
+}
 function toUpperCamelCase(str) {
     return str.replace(/(^|-)([a-z])/g, (_, __, letter) => letter.toUpperCase());
 }
@@ -42,7 +54,6 @@ async function copyTemplate(from, to) {
     await fs.cp(from, to, { recursive: true, force: true });
 }
 async function processAllSrcFiles(targetDir, config) {
-    console.log('\n🔄 Processing all src files...');
     const srcDir = path.join(targetDir, 'src');
     const processedFile = `${config.pluginId}-plugin.ts`;
     async function processDirectory(dir) {
@@ -71,9 +82,7 @@ async function processAllSrcFiles(targetDir, config) {
                     try {
                         await processTemplateFile(fullPath, config);
                     }
-                    catch (error) {
-                        console.log(`⚠️  Warning: Could not process ${entry.name}`);
-                    }
+                    catch (error) { }
                 }
             }
         }
@@ -86,7 +95,6 @@ async function processAllSrcFiles(targetDir, config) {
     }
 }
 async function processTemplateFile(filePath, config) {
-    console.log(`🔄 Processing ${path.basename(filePath)}...`);
     const content = await fs.readFile(filePath, 'utf8');
     const processed = content
         .replace(/{{PLUGIN_NAME}}/g, config.pluginName)
@@ -101,14 +109,13 @@ async function renameSpecialFiles(targetDir, config) {
     const newPath = path.join(targetDir, 'src', 'core', `${config.pluginId}-plugin.ts`);
     try {
         await fs.rename(oldPath, newPath);
-        console.log(`📝 Renamed empty-plugin.ts to ${config.pluginId}-plugin.ts`);
     }
-    catch (error) {
-        console.log(`ℹ️  File empty-plugin.ts not found, skipping rename`);
-    }
+    catch (error) { }
 }
 async function createPlugin(config) {
-    const targetDir = path.join(process.cwd(), config.pluginId);
+    const targetDir = options.here
+        ? process.cwd()
+        : path.join(process.cwd(), config.pluginId);
     console.log(`\n🏗️  Creating plugin in: ${targetDir}`);
     // Check if directory exists
     try {
@@ -119,13 +126,9 @@ async function createPlugin(config) {
     catch {
         // Directory doesn't exist, good to proceed
     }
-    // Copy base template
     const baseTemplate = path.join(templatesDir, 'base');
     await copyTemplate(baseTemplate, targetDir);
-    // Rename special files
     await renameSpecialFiles(targetDir, config);
-    // Process template variables in all files
-    console.log('\n🔄 Processing template variables...');
     const files = [
         'package.json',
         'manifest.json',
@@ -142,9 +145,7 @@ async function createPlugin(config) {
         try {
             await processTemplateFile(filePath, config);
         }
-        catch (error) {
-            console.log(`⚠️  Warning: Could not process ${file}, file might not exist`);
-        }
+        catch (error) { }
     }
     await processAllSrcFiles(targetDir, config);
     // Install dependencies
