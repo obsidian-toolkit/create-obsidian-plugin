@@ -46,10 +46,10 @@ async function getPluginConfig() {
 }
 async function copyTemplate(from, to) {
     console.log(`📁 Copying template...`);
-    const files = await glob('**/*', {
+    const files = await glob('{**/*,**/.*}', {
         cwd: from,
-        dot: true,
         nodir: true,
+        dot: true,
     });
     for (const file of files) {
         const sourcePath = path.join(from, file);

@@ -63,10 +63,10 @@ async function getPluginConfig(): Promise<PluginConfig> {
 async function copyTemplate(from: string, to: string): Promise<void> {
     console.log(`📁 Copying template...`);
 
-    const files = await glob('**/*', {
+    const files = await glob('{**/*,**/.*}', {
         cwd: from,
-        dot: true,
         nodir: true,
+        dot: true,
     });
 
     for (const file of files) {
