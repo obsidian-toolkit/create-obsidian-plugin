@@ -23,12 +23,6 @@ const options = program.opts();
 
 const root = findUpSync('package.json');
 
-if (!root) {
-    process.exit(1);
-} else {
-    process.chdir(path.dirname(root));
-}
-
 function toUpperCamelCase(str: string): string {
     return str.replace(/(^|-)([a-z])/g, (_, __, letter) =>
         letter.toUpperCase()
@@ -159,14 +153,15 @@ async function createPlugin(config: PluginConfig): Promise<void> {
     console.log(`\n🏗️  Creating plugin in: ${targetDir}`);
 
     // Check if directory exists
-    try {
-        await fs.access(targetDir);
-        console.log('❌ Directory already exists!');
-        process.exit(1);
-    } catch {
-        // Directory doesn't exist, good to proceed
+    if (!options.here) {
+        try {
+            await fs.access(targetDir);
+            console.log('❌ Directory already exists!');
+            process.exit(1);
+        } catch {
+            // Directory doesn't exist, good to proceed
+        }
     }
-
     const baseTemplate = path.join(templatesDir, 'base');
     await copyTemplate(baseTemplate, targetDir);
 

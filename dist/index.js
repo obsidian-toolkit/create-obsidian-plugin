@@ -12,12 +12,6 @@ const program = new Command();
 program.option('--here', 'create in current directory').parse();
 const options = program.opts();
 const root = findUpSync('package.json');
-if (!root) {
-    process.exit(1);
-}
-else {
-    process.chdir(path.dirname(root));
-}
 function toUpperCamelCase(str) {
     return str.replace(/(^|-)([a-z])/g, (_, __, letter) => letter.toUpperCase());
 }
@@ -118,13 +112,15 @@ async function createPlugin(config) {
         : path.join(process.cwd(), config.pluginId);
     console.log(`\n🏗️  Creating plugin in: ${targetDir}`);
     // Check if directory exists
-    try {
-        await fs.access(targetDir);
-        console.log('❌ Directory already exists!');
-        process.exit(1);
-    }
-    catch {
-        // Directory doesn't exist, good to proceed
+    if (!options.here) {
+        try {
+            await fs.access(targetDir);
+            console.log('❌ Directory already exists!');
+            process.exit(1);
+        }
+        catch {
+            // Directory doesn't exist, good to proceed
+        }
     }
     const baseTemplate = path.join(templatesDir, 'base');
     await copyTemplate(baseTemplate, targetDir);
