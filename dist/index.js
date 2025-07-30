@@ -98,7 +98,10 @@ async function processTemplateFile(filePath, config) {
         .replace(/{{PLUGIN_ID}}/g, config.pluginId)
         .replace(/{{PLUGIN_ID_UPPER_CAMEL}}/g, toUpperCamelCase(config.pluginId))
         .replace(/{{AUTHOR}}/g, config.author);
-    await fs.writeFile(filePath, processed);
+    let fPath = filePath.includes('.gitignore')
+        ? filePath.replace('_.gitignore', '.gitignore')
+        : filePath;
+    await fs.writeFile(fPath, processed);
 }
 async function renameSpecialFiles(targetDir, config) {
     // Rename empty-plugin.ts to pluginId-plugin.ts
@@ -134,7 +137,7 @@ async function createPlugin(config) {
         'rollup.config.ts',
         'tsconfig.devs.json',
         'styles.scss',
-        '.gitignore',
+        '_.gitignore',
         'README.md',
         'LICENSE',
         `src/core/${config.pluginId}-plugin.ts`,
