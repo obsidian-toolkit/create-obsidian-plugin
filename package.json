@@ -3,9 +3,12 @@
     "publishConfig": {
         "access": "public"
     },
-    "version": "0.0.1",
+    "version": "0.0.2",
     "scripts": {
         "build": "tsc"
+    },
+    "bin": {
+        "create-obsidian-plugin": "./dist/index.js"
     },
     "devDependencies": {
         "@changesets/cli": "^2.29.5",
